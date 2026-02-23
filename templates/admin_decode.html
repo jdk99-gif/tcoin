@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <title>Admin - Dekoduj token</title>
+    <style>
+        body { margin:0; font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f5f5f7; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .widget { background:#fff; border-radius:20px; padding:28px; width:420px; box-shadow:0 20px 40px rgba(15,23,42,0.12); }
+        h3 { margin-top:0; }
+        label { display:block; margin-bottom:6px; color:#374151; font-size:13px; }
+        input[type="text"] { width:100%; padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; }
+        .btn { margin-top:10px; padding:10px 12px; border-radius:999px; border:none; cursor:pointer; font-weight:600; }
+        .btn-primary { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
+        .btn-secondary { background:#e5e7eb; color:#111827; }
+        .row { margin-top:12px; }
+        .result { margin-top:14px; padding-top:12px; border-top:1px solid #e5e7eb; font-size:14px; }
+        .auth { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#111827; color:#111827; padding:6px 10px; border-radius:6px; display:inline-block; }
+        .auth.revealed { color:#fff; }
+        .small { font-size:13px; color:#6b7280; }
+        .error { color:#b91c1c; margin-top:8px; }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <h3>Admin: odszyfruj token</h3>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <label>Wklej token TPAY</label>
+            <input name="token" type="text" placeholder="TPAY:...">
+            <div class="row">
+                <button class="btn btn-primary">Odszyfruj i wygeneruj AUTH</button>
+            </div>
+        </form>
+
+        <div style="margin-top:8px;"><a href="/menu?tab={{ tab }}" class="small">Powrót do menu</a></div>
+
+        {% if show_result %}
+        <div class="result">
+            <div><strong>Nazwa użytkownika:</strong> {{ username }}</div>
+            <div><strong>Akcja:</strong> {{ action_text }}</div>
+            <div><strong>Ilość:</strong> {{ amount_text }}</div>
+            <div style="margin-top:8px;">
+                <strong>Wygenerowany AUTH:</strong>
+                <span id="auth" class="auth">{{ auth }}</span>
+                <button id="reveal" class="btn btn-secondary" style="margin-left:10px;">Pokaż AUTH</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // hide AUTH visually until button clicked
+        (function(){
+            var authEl = document.getElementById('auth');
+            var btn = document.getElementById('reveal');
+            if(!authEl || !btn) return;
+            // mask the auth by setting text color same as background
+            authEl.classList.remove('revealed');
+            btn.addEventListener('click', function(e){
+                e.preventDefault();
+                authEl.classList.add('revealed');
+                // scroll into view and highlight briefly
+                authEl.style.transition = 'background 0.15s ease';
+                authEl.style.background = '#10b981';
+                setTimeout(function(){ authEl.style.background = '#111827'; }, 400);
+            });
+        })();
+    </script>
+</body>
+</html>

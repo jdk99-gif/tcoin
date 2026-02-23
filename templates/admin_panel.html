@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <title>Admin - TCOIN</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .widget {
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+            padding: 32px 28px 28px;
+            width: 380px;
+            text-align: center;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 18px;
+        }
+        .rate {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .rate-sub {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .logout {
+            display: inline-block;
+            margin-top: 18px;
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+        }
+        .logout:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="title">Panel administratora</div>
+        <div class="subtitle">Zarządzaj tokenami i kursem TCOIN.</div>
+        <p class="rate">1 TCOIN = {{ "%.2f"|format(current_rate) }} zł</p>
+        <div class="rate-sub">Aktualny kurs wymiany używany przy transakcjach.</div>
+
+        <form action="/admin/decode_token" method="get">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <button class="btn btn-primary">Dekoduj token TPAY i wygeneruj AUTH</button>
+        </form>
+
+        <form action="/admin/force_rate" method="post">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <button class="btn btn-secondary">Wymuś losową zmianę kursu</button>
+        </form>
+
+        <form action="/admin/reset_rate" method="post">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <button class="btn btn-secondary">Ustaw kurs na 5.50 zł</button>
+        </form>
+
+        <a href="/logout" class="logout">Wyloguj</a>
+    </div>
+</body>
+</html>
+

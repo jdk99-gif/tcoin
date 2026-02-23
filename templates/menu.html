@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <title>TCOIN</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #111827;
+        }
+        .widget {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+            padding: 32px 28px 28px;
+            width: 360px;
+            text-align: center;
+        }
+        .widget-header {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        .balance-label {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .balance-main {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .balance-sub {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            outline: none;
+        }
+        select:focus, input:focus {
+            border-color: #f97316;
+            box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.3);
+        }
+        .primary-btn, .secondary-btn {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .primary-btn {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #ffffff;
+            margin-top: 8px;
+        }
+        .secondary-btn {
+            background: #e5e7eb;
+            color: #111827;
+            margin-top: 8px;
+        }
+        .token-box {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 13px;
+        }
+        .token-value {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+        }
+        .message {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #111827;
+        }
+        .logout {
+            display: inline-block;
+            margin-top: 18px;
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+        }
+        .logout:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="widget-header">
+            Panel TCOIN
+        </div>
+        <div class="balance-label">
+            Saldo konta
+        </div>
+        <p class="balance-main">
+            {{ "%.2f"|format(balance_pln) }} zł
+        </p>
+        <div class="balance-sub">
+            {{ "%.2f"|format(balance_tcoin) }} TCOIN &middot;
+            kurs: 1 TCOIN = {{ "%.2f"|format(tcoin_rate) }} zł
+        </div>
+
+        <form method="post">
+            <input type="hidden" name="tab" value="{{ tab }}">
+
+            <div class="form-row">
+                <label>Akcja</label>
+                <select name="action">
+                    <option value="0">Kupno TCOIN</option>
+                    <option value="1">Sprzedaż TCOIN</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label>Ilość TCOIN</label>
+                <input name="amount" type="number" step="any" inputmode="decimal" placeholder="np. 1.5">
+            </div>
+
+            <button class="primary-btn" formaction="/generate_token" formmethod="post">
+                Generuj token
+            </button>
+
+            {% if token_value and token_value != "" %}
+            <div class="token-box">
+                <div><strong>Token TPAY wygenerowany</strong></div>
+                <div class="token-value">{{ token_value }}</div>
+                <div style="margin-top: 10px;">
+                    Podaj AUTH od admina, aby zatwierdzić:
+                </div>
+                <div style="margin-top: 6px;">
+                    <input name="auth" type="text" placeholder="AUTH">
+                </div>
+                <button class="secondary-btn">
+                    Zatwierdź transakcję
+                </button>
+            </div>
+            {% endif %}
+        </form>
+
+        {% if message %}
+        <div class="message">
+            {{ message }}
+        </div>
+        {% endif %}
+
+        <a href="/logout" class="logout">Wyloguj</a>
+    </div>
+</body>
+</html>
+

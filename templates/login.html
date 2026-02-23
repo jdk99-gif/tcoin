@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}?v=2" type="image/png">
+    <title>Login - TCOIN</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .widget {
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+            padding: 32px 28px 28px;
+            width: 360px;
+            text-align: center;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        .error {
+            color: #b91c1c;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .form-row {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #f97316;
+            box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.3);
+        }
+        .primary-btn {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            margin-top: 4px;
+        }
+        .secondary-btn {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            margin-top: 8px;
+        }
+        .back {
+            display: inline-block;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+        }
+        .back:hover {
+            text-decoration: underline;
+        }
+        .register-box {
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 13px;
+            color: #4b5563;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div class="title">Zarejestruj Lub Zaloguj Sie</div>
+        <div class="subtitle">Podaj login i hasło do swojego konta TCOIN.</div>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+            <div class="form-row">
+                <label>Login</label>
+                <input name="username" type="text" autocomplete="username" value="{{ username or '' }}">
+            </div>
+            <div class="form-row">
+                <label>Hasło</label>
+                <input name="password" type="password" autocomplete="current-password">
+            </div>
+            <button class="primary-btn">Zaloguj</button>
+        </form>
+
+        {% if offer_register %}
+        <div class="register-box">
+            <div>
+                Konto <strong>{{ reg_username }}</strong> nie istnieje. Możesz je teraz utworzyć:
+            </div>
+            <form method="post" action="/register" style="margin-top:8px;">
+                <input type="hidden" name="username" value="{{ reg_username }}">
+                <input type="hidden" name="password" value="{{ reg_password }}">
+                <button class="secondary-btn">Zarejestruj konto i zaloguj</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+
