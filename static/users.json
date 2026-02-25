@@ -7,7 +7,7 @@
     "2": {
         "username": "d",
         "password": "d",
-        "balance": 0,
+        "balance": 0.0,
         "role": "user"
     }
 }

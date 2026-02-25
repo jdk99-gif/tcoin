@@ -1,3 +1,4 @@
+import mysql.connector
 from flask import Flask, request, session, redirect, render_template, render_template_string, send_from_directory
 import json, os, random, datetime
 from urllib.parse import quote_plus
@@ -162,6 +163,7 @@ def register():
     users[new_id] = {
         "username": request.form["username"],
         "password": request.form["password"],
+        # balance stores TCOIN amount now
         "balance": 0,
         "role": "user"
     }
@@ -196,12 +198,12 @@ def menu():
     if tab and tab in tokens:
         token_value = tokens[tab]
     else:
-        # fallback do starego mechanizmu, jeśli coś jeszcze używa session["current_token"]
         token_value = session.get("current_token", "")
-    # allow passing an error message from redirects (e.g. invalid amount)
-    message = request.args.get("error", "")
 
-    # POST – zatwierdzenie transakcji
+    # allow passing an error or informational message from redirects
+    message = request.args.get("error") or request.args.get("message", "")
+
+    # POST – zatwierdzenie transakcji (wykorzystywane przy TPAY)
     if request.method == "POST":
         user_auth = (request.form.get("auth") or "").strip()
         if token_value:
@@ -227,44 +229,39 @@ def menu():
                 elif user_auth != token_auth:
                     message = "Zły AUTH!"
                 else:
-                    # aktualny kurs TCOIN na dziś
-                    current_rate = load_tbuy_rate()
-                    # kwota w PLN po przeliczeniu z TCOIN
-                    value_pln = amount * current_rate
-                    if action == "0":  # Kupno TCOIN (zasilenie salda w zł)
-                        users[uid]["balance"] += value_pln
+                    if action == "0":  # Kupno TCOIN
+                        users[uid]["balance"] = float(users[uid].get("balance", 0)) + amount
                         message = (
                             f"Transakcja kupna zatwierdzona! "
-                            f"Kupiłeś {amount} TCOIN (wartość {value_pln} zł). "
-                            f"Twoje nowe saldo: {users[uid]['balance']} zł."
+                            f"Dostałeś {amount} TCOIN. "
+                            f"Twoje nowe saldo: {users[uid]['balance']} TCOIN."
                         )
-                    else:  # Sprzedaż TCOIN (zmniejszenie salda w zł)
-                        if users[uid]["balance"] < value_pln:
+                    else:  # Sprzedaż TCOIN
+                        if users[uid].get("balance", 0) < amount:
                             message = (
-                                f"Nie masz wystarczającego salda! "
-                                f"Potrzeba {value_pln} zł, a masz: {users[uid]['balance']} zł."
+                                f"Nie masz wystarczającej ilości TCOIN! "
+                                f"Potrzeba {amount}, a masz: {users[uid]['balance']} TCOIN."
                             )
                         else:
-                            users[uid]["balance"] -= value_pln
+                            users[uid]["balance"] -= amount
                             message = (
                                 f"Transakcja sprzedaży zatwierdzona! "
-                                f"Sprzedałeś {amount} TCOIN (wartość {value_pln} zł). "
-                                f"Twoje nowe saldo: {users[uid]['balance']} zł."
+                                f"Sprzedałeś {amount} TCOIN. "
+                                f"Twoje nowe saldo: {users[uid]['balance']} TCOIN."
                             )
                     save_users(users)
                     # usuwamy token tylko dla tej konkretnej karty
                     if tab and tab in tokens:
                         tokens.pop(tab, None)
                         session["tokens"] = tokens
-                    # oraz stary globalny token (na wszelki wypadek)
                     session.pop("current_token", None)
                     token_value = ""
         else:
             message = "Nie masz wygenerowanego tokena!"
 
     current_rate = load_tbuy_rate()
-    balance_pln = float(user.get("balance", 0) or 0)
-    balance_tcoin = balance_pln / current_rate if current_rate else 0
+    balance_tcoin = float(user.get("balance", 0) or 0)
+    balance_pln = balance_tcoin * current_rate if current_rate else 0
 
     return render_template(
         "menu.html",
@@ -273,10 +270,13 @@ def menu():
         balance_tcoin=balance_tcoin,
         token_value=token_value,
         message=message,
+        uid=uid,
         tab=tab or "",
     )
 
 # ---------- GENEROWANIE TOKENA – ZAPIS W SESJI ----------
+
+
 
 @app.route("/generate_token", methods=["POST"])
 def generate_token_menu():
@@ -299,11 +299,42 @@ def generate_token_menu():
         return redirect(f"/menu?error={quote_plus(err)}")
 
     # jeśli akcja = sprzedaż i saldo jest mniejsze niż ilość → blokada
-    if action == "1" and user["balance"] < amount:
+    if action == "1" and user.get("balance", 0) < amount:
         if tab:
-            return f"Nie masz wystarczającego salda, aby wygenerować token do sprzedaży! Twoje saldo: {user['balance']}<br><a href='/menu?tab={tab}'>Powrót</a>"
-        return f"Nie masz wystarczającego salda, aby wygenerować token do sprzedaży! Twoje saldo: {user['balance']}<br><a href='/menu'>Powrót</a>"
+            return f"Nie masz wystarczającej ilości TCOIN, aby wygenerować token do sprzedaży! Twoje saldo: {user['balance']}<br><a href='/menu?tab={tab}'>Powrót</a>"
+        return f"Nie masz wystarczającej ilości TCOIN, aby wygenerować token do sprzedaży! Twoje saldo: {user['balance']}<br><a href='/menu'>Powrót</a>"
 
+    # obsługa prezentu (akcja 2): natychmiastowy transfer bez tokenów
+    if action == "2":
+        gift_code = (request.form.get("recipient_id") or "").strip()
+        # format 0Z<uid>Z0
+        parts = gift_code.split("Z")
+        if len(parts) != 3 or parts[0] != "0" or parts[2] != "0" or not parts[1].isdigit():
+            err = "Nieprawidłowy format gift ID. Użyj 0Z<id odbiorcy>Z0."
+            if tab:
+                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
+            return redirect(f"/menu?error={quote_plus(err)}")
+        recipient_uid = parts[1]
+        if recipient_uid not in users:
+            err = "Nieznany odbiorca."
+            if tab:
+                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
+            return redirect(f"/menu?error={quote_plus(err)}")
+        if user.get("balance", 0) < amount:
+            err = "Nie masz wystarczającej ilości TCOIN."
+            if tab:
+                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
+            return redirect(f"/menu?error={quote_plus(err)}")
+        # wykonaj transfer
+        users[uid]["balance"] -= amount
+        users[recipient_uid]["balance"] = float(users[recipient_uid].get("balance", 0)) + amount
+        save_users(users)
+        msg = f"Przekazano {amount} TCOIN do użytkownika {recipient_uid}."
+        if tab:
+            return redirect(f"/menu?tab={tab}&message={quote_plus(msg)}")
+        return redirect(f"/menu?message={quote_plus(msg)}")
+
+    # normalny token TPAY do kupna/sprzedaży
     token_auth = str(random.randint(1000, 9999))
     token = f"TPAY:{uid}Z{action}Z{amount_token}Z{token_auth}"
 

@@ -125,26 +125,36 @@
         <div class="widget-header">
             Panel TCOIN
         </div>
-        <div class="balance-label">
+        <div><strong>Twoje gift ID</strong></div>
+            <div class="token-value">0Z{{ uid }}Z0</div>
+            <div style="margin-top:10px; font-size:12px">
+                Poinformuj tę wartość osobę, której chcesz wysłać TCOIN.
+		<div class="balance-label">
             Saldo konta
         </div>
         <p class="balance-main">
-            {{ "%.2f"|format(balance_pln) }} zł
+            {{ "%.2f"|format(balance_tcoin) }} TC
         </p>
         <div class="balance-sub">
-            {{ "%.2f"|format(balance_tcoin) }} TCOIN &middot;
+            {{ "%.2f"|format(balance_pln) }} ZŁ &middot;
             kurs: 1 TCOIN = {{ "%.2f"|format(tcoin_rate) }} zł
         </div>
+ 
 
-        <form method="post">
+        <form method="post" action="/generate_token">
             <input type="hidden" name="tab" value="{{ tab }}">
 
             <div class="form-row">
                 <label>Akcja</label>
-                <select name="action">
+                <select name="action" id="action-select">
                     <option value="0">Kupno TCOIN</option>
                     <option value="1">Sprzedaż TCOIN</option>
+                    <option value="2">Podaruj TCOIN</option>
                 </select>
+            </div>
+
+            <div class="form-row" id="sender-gift-row" style="display:none;">
+            
             </div>
 
             <div class="form-row">
@@ -152,9 +162,15 @@
                 <input name="amount" type="number" step="any" inputmode="decimal" placeholder="np. 1.5">
             </div>
 
-            <button class="primary-btn" formaction="/generate_token" formmethod="post">
+            <div class="form-row" id="recipient-row" style="display:none;">
+                <label>Gift ID odbiorcy</label>
+                <input name="recipient_id" type="text" placeholder="np. 0Z3Z0">
+            </div>
+
+            <button class="primary-btn" id="generate-button">
                 Generuj token
             </button>
+
 
             {% if token_value and token_value != "" %}
             <div class="token-box">
@@ -181,6 +197,31 @@
 
         <a href="/logout" class="logout">Wyloguj</a>
     </div>
+
+    <script>
+        // show/hide gift and recipient fields and adjust button text based on action
+        const actionSelect = document.getElementById('action-select');
+        const senderGiftRow = document.getElementById('sender-gift-row');
+        const recipientRow = document.getElementById('recipient-row');
+        const generateBtn = document.getElementById('generate-button');
+
+        function updateForm() {
+            const val = actionSelect.value;
+            if (val === '2') {
+                senderGiftRow.style.display = 'block';
+                recipientRow.style.display = 'block';
+                generateBtn.textContent = 'Wyślij TCOIN';
+            } else {
+                senderGiftRow.style.display = 'none';
+                recipientRow.style.display = 'none';
+                generateBtn.textContent = 'Generuj token';
+            }
+        }
+
+        actionSelect.addEventListener('change', updateForm);
+        // initialize on page load
+        updateForm();
+    </script>
 </body>
 </html>
 
