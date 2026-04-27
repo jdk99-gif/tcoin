@@ -23,6 +23,52 @@
             padding: 32px 28px 28px;
             width: 360px;
             text-align: center;
+            position: relative;
+        }
+        .profile-menu {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            text-align: right;
+        }
+        .profile-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            color: #111827;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .profile-panel {
+            margin-top: 8px;
+            width: 260px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+            padding: 12px;
+            display: none;
+            text-align: left;
+        }
+        .profile-panel.open {
+            display: block;
+        }
+        .profile-title {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        .profile-logout {
+            display: inline-block;
+            font-size: 13px;
+            color: #374151;
+            text-decoration: none;
+            margin-bottom: 10px;
+        }
+        .profile-logout:hover {
+            text-decoration: underline;
         }
         .widget-header {
             font-size: 14px;
@@ -87,6 +133,18 @@
             color: #111827;
             margin-top: 8px;
         }
+        .danger-btn {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #ef4444;
+            color: #ffffff;
+            margin-top: 10px;
+        }
         .token-box {
             margin-top: 18px;
             padding-top: 14px;
@@ -108,20 +166,40 @@
             font-size: 13px;
             color: #111827;
         }
-        .logout {
-            display: inline-block;
-            margin-top: 18px;
-            font-size: 13px;
+        .confirm-help {
+            margin-top: 6px;
+            font-size: 12px;
             color: #6b7280;
-            text-decoration: none;
         }
-        .logout:hover {
-            text-decoration: underline;
+        .delete-confirm-box {
+            display: none;
+            margin-top: 8px;
+        }
+        .delete-confirm-box.open {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="widget">
+        <div class="profile-menu">
+            <button type="button" class="profile-btn" id="profile-btn" title="Menu profilu">👤</button>
+            <div class="profile-panel" id="profile-panel">
+                <div class="profile-title">Menu konta</div>
+                <a href="/logout" class="profile-logout">Wyloguj</a>
+                <form method="post" action="/delete_account">
+                    <input type="hidden" name="tab" value="{{ tab }}">
+                    <button class="danger-btn" id="toggle-delete-confirm" type="button">Usuń konto</button>
+                    <div class="delete-confirm-box" id="delete-confirm-box">
+                        <label for="confirm_delete">Wpisz USUN, aby potwierdzić</label>
+                        <input id="confirm_delete" name="confirm_delete" type="text" placeholder="USUN">
+                        <div class="confirm-help">Usunięcie konta jest nieodwracalne.</div>
+                        <button class="danger-btn" type="submit">Potwierdź usunięcie</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="widget-header">
             Panel TCOIN
         </div>
@@ -170,7 +248,7 @@
             <button class="primary-btn" id="generate-button">
                 Generuj token
             </button>
-
+        </form>
 
             {% if token_value and token_value != "" %}
             <div class="token-box">
@@ -179,15 +257,17 @@
                 <div style="margin-top: 10px;">
                     Podaj AUTH od admina, aby zatwierdzić:
                 </div>
-                <div style="margin-top: 6px;">
-                    <input name="auth" type="text" placeholder="AUTH">
-                </div>
-                <button class="secondary-btn">
-                    Zatwierdź transakcję
-                </button>
+                <form method="post" action="/menu">
+                    <input type="hidden" name="tab" value="{{ tab }}">
+                    <div style="margin-top: 6px;">
+                        <input name="auth" type="text" placeholder="AUTH" required>
+                    </div>
+                    <button class="secondary-btn">
+                        Zatwierdź transakcję
+                    </button>
+                </form>
             </div>
             {% endif %}
-        </form>
 
         {% if message %}
         <div class="message">
@@ -195,7 +275,6 @@
         </div>
         {% endif %}
 
-        <a href="/logout" class="logout">Wyloguj</a>
     </div>
 
     <script>
@@ -204,6 +283,11 @@
         const senderGiftRow = document.getElementById('sender-gift-row');
         const recipientRow = document.getElementById('recipient-row');
         const generateBtn = document.getElementById('generate-button');
+        const profileBtn = document.getElementById('profile-btn');
+        const profilePanel = document.getElementById('profile-panel');
+        const toggleDeleteConfirmBtn = document.getElementById('toggle-delete-confirm');
+        const deleteConfirmBox = document.getElementById('delete-confirm-box');
+        const confirmDeleteInput = document.getElementById('confirm_delete');
 
         function updateForm() {
             const val = actionSelect.value;
@@ -219,6 +303,19 @@
         }
 
         actionSelect.addEventListener('change', updateForm);
+        profileBtn.addEventListener('click', () => {
+            profilePanel.classList.toggle('open');
+        });
+        toggleDeleteConfirmBtn.addEventListener('click', () => {
+            deleteConfirmBox.classList.toggle('open');
+            if (deleteConfirmBox.classList.contains('open')) {
+                confirmDeleteInput.required = true;
+                confirmDeleteInput.focus();
+            } else {
+                confirmDeleteInput.required = false;
+                confirmDeleteInput.value = '';
+            }
+        });
         // initialize on page load
         updateForm();
     </script>
