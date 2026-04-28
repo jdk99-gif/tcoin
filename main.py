@@ -166,6 +166,30 @@ def decode_auth(encoded_auth: str) -> str:
     """Odkodowuje AUTH z tokena (odwrócenie ciągu)."""
     return str(encoded_auth)[::-1]
 
+def set_menu_message(message, tab=None):
+    """
+    Zapisuje komunikat dla /menu bez przekazywania go w URL.
+    Dla tab zapisujemy osobno, aby komunikaty nie mieszały się między kartami.
+    """
+    if tab:
+        menu_messages = session.get("menu_messages", {})
+        menu_messages[tab] = message
+        session["menu_messages"] = menu_messages
+    else:
+        session["menu_message"] = message
+
+def pop_menu_message(tab=None):
+    """
+    Pobiera i usuwa jednorazowy komunikat dla /menu.
+    """
+    if tab:
+        menu_messages = session.get("menu_messages", {})
+        message = menu_messages.pop(tab, "")
+        session["menu_messages"] = menu_messages
+        if message:
+            return message
+    return session.pop("menu_message", "")
+
 # ---------- LOGIN / REGISTER ----------
 
 @app.route("/", methods=["GET", "POST"])
@@ -277,8 +301,8 @@ def menu():
     else:
         token_value = session.get("current_token", "")
 
-    # allow passing an error or informational message from redirects
-    message = request.args.get("error") or request.args.get("message", "")
+    # komunikat błędu/sukcesu z redirectów (bez ?error=... w URL)
+    message = pop_menu_message(tab) or request.args.get("message", "")
 
     # POST – zatwierdzenie transakcji (wykorzystywane przy TPAY)
     if request.method == "POST":
@@ -399,17 +423,19 @@ def generate_token_menu():
         amount = float(amount_input.replace(",", "."))
     except ValueError:
         err = "Błędna wartość ilości (użyj liczb, np. 10 lub 10.5)."
+        set_menu_message(err, tab)
         if tab:
-            return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-        return redirect(f"/menu?error={quote_plus(err)}")
+            return redirect(f"/menu?tab={tab}")
+        return redirect("/menu")
 
     # jeśli akcja = sprzedaż i saldo jest mniejsze niż ilość → blokada
     # pokazujemy komunikat na stronie menu (tak jak inne błędy), zamiast osobnej strony
     if action == "1" and user.get("balance", 0) < amount:
         err = "Nie masz wystarczającej ilości TCOIN, aby wygenerować token do sprzedaży!"
+        set_menu_message(err, tab)
         if tab:
-            return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-        return redirect(f"/menu?error={quote_plus(err)}")
+            return redirect(f"/menu?tab={tab}")
+        return redirect("/menu")
 
     # obsługa prezentu (akcja 2): natychmiastowy transfer bez tokenów
     if action == "2":
@@ -418,23 +444,26 @@ def generate_token_menu():
         parts = gift_code.split("Z")
         if len(parts) != 3 or parts[0] != "0" or parts[2] != "0" or not parts[1].isdigit():
             err = "Nieprawidłowy format gift ID. Użyj 0Z<id odbiorcy>Z0."
+            set_menu_message(err, tab)
             if tab:
-                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-            return redirect(f"/menu?error={quote_plus(err)}")
+                return redirect(f"/menu?tab={tab}")
+            return redirect("/menu")
         
         recipient_uid = parts[1]
         recipient = get_user_by_id(recipient_uid)
         if not recipient:
             err = "Nieznany odbiorca."
+            set_menu_message(err, tab)
             if tab:
-                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-            return redirect(f"/menu?error={quote_plus(err)}")
+                return redirect(f"/menu?tab={tab}")
+            return redirect("/menu")
         
         if user.get("balance", 0) < amount:
             err = "Nie masz wystarczającej ilości TCOIN."
+            set_menu_message(err, tab)
             if tab:
-                return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-            return redirect(f"/menu?error={quote_plus(err)}")
+                return redirect(f"/menu?tab={tab}")
+            return redirect("/menu")
         
         # wykonaj transfer
         sender_balance = float(user.get("balance", 0)) - amount
@@ -550,11 +579,11 @@ def admin_force_rate():
 
         today = datetime.date.today().isoformat()
         
-        # Aktualizuj lub wstaw nowy kurs
+        # Aktualizuj lub wstaw nowy kurs dla danej daty
         supabase.table("exchange_rates").upsert({
             "date": today,
             "rate": new_rate
-        }).execute()
+        }, on_conflict="date").execute()
     except Exception as e:
         print(f"Błąd przy zmianie kursu: {e}")
 
@@ -583,7 +612,7 @@ def admin_reset_rate():
         supabase.table("exchange_rates").upsert({
             "date": today,
             "rate": BASE_TBUY_RATE
-        }).execute()
+        }, on_conflict="date").execute()
     except Exception as e:
         print(f"Błąd przy resetowaniu kursu: {e}")
 
@@ -606,24 +635,27 @@ def delete_account():
     confirm_text = (request.form.get("confirm_delete") or "").strip().upper()
     if confirm_text != "USUN":
         err = "Aby usunąć konto, wpisz dokładnie: USUN"
+        set_menu_message(err, tab)
         if tab:
-            return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-        return redirect(f"/menu?error={quote_plus(err)}")
+            return redirect(f"/menu?tab={tab}")
+        return redirect("/menu")
 
     if user.get("role") == "admin":
         err = "Konto admina nie może zostać usunięte."
+        set_menu_message(err, tab)
         if tab:
-            return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-        return redirect(f"/menu?error={quote_plus(err)}")
+            return redirect(f"/menu?tab={tab}")
+        return redirect("/menu")
 
     try:
         supabase.table("users").delete().eq("id", int(uid)).execute()
     except Exception as e:
         print(f"Błąd przy usuwaniu konta: {e}")
         err = "Nie udało się usunąć konta."
+        set_menu_message(err, tab)
         if tab:
-            return redirect(f"/menu?tab={tab}&error={quote_plus(err)}")
-        return redirect(f"/menu?error={quote_plus(err)}")
+            return redirect(f"/menu?tab={tab}")
+        return redirect("/menu")
 
     # Wyczyść powiązania z kartami i tokenami dla usuniętego użytkownika
     tabs = session.get("tabs", {})
